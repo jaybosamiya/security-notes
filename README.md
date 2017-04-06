@@ -16,6 +16,69 @@ This work is licensed under a [Creative Commons Attribution-NonCommercial-ShareA
 
 ## The Notes Themselves
 
+### "Advanced" Format String Exploitation
+
+Written on 6th April 2017
+
+> Influenced by [this](https://www.youtube.com/watch?v=xAdjDEwENCQ)
+> awesome live stream by Gynvael Coldwind, where he talks about format
+> string exploitation
+
+Simple format string exploits:
+
+You can use the `%p` to see what's on the stack. If the format string
+itself is on the stack, then one can place an address (say _foo_) onto
+the stack, and then seek to it using the position specifier `n$` (for
+example, `AAAA %7$p` might return `AAAA 0x41414141`, if 7 is the
+position on the stack). We can then use this to build a **read-where**
+primitive, using the `%s` format specifier instead (for example, `AAAA
+%7$s` would return the value at the address 0x41414141, continuing the
+previous example). We can also use the `%n` format specifier to make
+it into a **write-what-where** primitive. Usually instead, we use
+`%hhn` (a glibc extension, iirc), which lets us write one byte at a
+time.
+
+We use the above primitives to initially beat ASLR (if any) and then
+overwrite an entry in the GOT (say `exit()` or `fflush()` or ...) to
+then raise it to an **arbitrary-eip-control** primitive, which
+basically gives us **arbitrary-code-execution**.
+
+Possible difficulties (that make it "advanced" exploitation):
+
+If we have **partial ASLR**, then we can still use format strings and
+beat it, but this becomes much harder if we only have one-shot exploit
+(i.e., our exploit needs to run instantaneously, and the addresses are
+randomized on each run, say). The way we would beat this is to use
+addresses that are already in the memory, and overwrite them partially
+(since ASLR affects only higher order bits). This way, we can gain
+reliability during execution.
+
+If we have a **read only .GOT** section, then the "standard" attack of
+overwriting the GOT will not work. In this case, we look for
+alternative areas that can be overwritten (preferably function
+pointers). Some such areas are: `__malloc_hook` (see `man` page for
+the same), `stdin`'s vtable pointer to `write` or `flush`, etc. In
+such a scenario, having access to the libc sources is extremely
+useful. As for overwriting the `__malloc_hook`, it works even if the
+application doesn't call `malloc`, since it is calling `printf` (or
+similar), and internally, if we pass a width specifier greater than
+64k (say `%70000c`), then it will call malloc, and thus whatever
+address was specified at the global variable `__malloc_hook`.
+
+If we have our format string **buffer not on the stack**, then we can
+still gain a **write-what-where** primitive, though it is a little
+more complex. First off, we need to stop using the position specifiers
+`n$`, since if this is used, then `printf` internally copies the stack
+(which we will be modifying as we go along). Now, we find two pointers
+that point _ahead_ into the stack itself, and use those to overwrite
+the lower order bytes of two further _ahead_ pointing pointers on the
+stack, so that they now point to `x+0` and `x+2` where `x` is some
+location further _ahead_ on the stack. Using these two overwrites, we
+are able to completely control the 4 bytes at `x`, and this becomes
+our **where** in the primitive. Now we just have to ignore more
+positions on the format string until we come to this point, and we
+have a **write-what-where** primitive.
+
 ### Race Conditions & Exploiting Them
 
 Written on 1st April 2017
