@@ -20,7 +20,8 @@ This work is licensed under a [Creative Commons Attribution-NonCommercial-ShareA
 
 Written on 7th April 2017
 
-> Influenced from a nice challenge in PicoCTF 2017 (name of challenge
+> Influenced from a nice challenge
+> in [PicoCTF 2017](http://2017.picoctf.com/) (name of challenge
 > withheld, since the contest is still under way)
 
 WARNING: This note might seem simple/obvious to some readers, but it
