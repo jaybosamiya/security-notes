@@ -16,6 +16,71 @@ This work is licensed under a [Creative Commons Attribution-NonCommercial-ShareA
 
 ## The Notes Themselves
 
+### Exploitation Abstraction
+
+Written on 7th April 2017
+
+> Influenced from a nice challenge in PicoCTF 2017 (name of challenge
+> withheld, since the contest is still under way)
+
+WARNING: This note might seem simple/obvious to some readers, but it
+necessitates saying, since the layering wasn't crystal clear to me
+until very recently.
+
+Of course, when programming, all of us use abstractions, whether they
+be classes and objects, or functions, or meta-functions, or
+polymorphism, or monads, or functors, or all that jazz. However, can
+we really have such a thing during exploitation? Obviously, we can
+exploit mistakes that are made in implementing the aforementioned
+abstractions, but here, I am talking about something different.
+
+Across multiple CTFs, whenever I've written an exploit previously, it
+has been an ad-hoc exploit script that drops a shell. I use the
+amazing pwntools as a framework (for connecting to the service, and
+converting things, and DynELF, etc), but that's about it. Each exploit
+tended to be an ad-hoc way to work towards the goal of arbitrary code
+execution. However, this current challenge, as well as thinking about
+my previous note
+on
+["Advanced" Format String Exploitation](#advanced-format-string-exploitation),
+made me realize that I could layer my exploits in a consistent way,
+and move through different abstraction layers to finally reach the
+requisite goal.
+
+As an example, let us consider the vulnerability to be a logic error,
+which lets us do a read/write of 4 bytes, somewhere in a small range
+_after_ a buffer. We want to abuse this all the way to gaining code
+execution, and finally the flag.
+
+In this scenario, I would consider this abstraction to be a
+`short-distance-write-anything` primitive. With this itself, obviously
+we cannot do much. Nevertheless, I make a small Python function
+`vuln(offset, val)`. However, since just after the buffer, there may
+be some data/meta-data that might be useful, we can abuse this to
+build both `read-anywhere` and `write-anything-anywhere`
+primitives. This means, I write short Python functions that call the
+previously defined `vuln()` function. These `get_mem(addr)` and
+`set_mem(addr, val)` functions are made simply (in this current
+example) simply by using the `vuln()` function to overwrite a pointer,
+which can then be dereferenced elsewhere in the binary.
+
+Now, after we have these `get_mem()` and `set_mem()` abstractions, I
+build an anti-ASLR abstraction, by basically leaking 2 addresses from
+the GOT through `get_mem()` and comparing against
+a [libc database](https://github.com/niklasb/libc-database) (thanks
+@niklasb for making the database). This gives me a `libc_base` using
+which allows me to replace any function in the GOT with another.
+
+This has essentially given me control over EIP (the moment I can
+"trigger" one of those functions _exactly_ when I want to). Now, all
+that remains is for me to call the trigger with the right parameters.
+So I set up the parameters as a separate abstraction, and then call
+`trigger()` and I have shell access on the system.
+
+TL;DR: One can build small exploitation primitives (which do not have
+too much power), and by combining them and building a hierarchy of
+stronger primitives, we can gain complete execution.
+
 ### "Advanced" Format String Exploitation
 
 Written on 6th April 2017
