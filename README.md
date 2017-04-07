@@ -69,8 +69,9 @@ Now, after we have these `get_mem()` and `set_mem()` abstractions, I
 build an anti-ASLR abstraction, by basically leaking 2 addresses from
 the GOT through `get_mem()` and comparing against
 a [libc database](https://github.com/niklasb/libc-database) (thanks
-@niklasb for making the database). This gives me a `libc_base` using
-which allows me to replace any function in the GOT with another.
+@niklasb for making the database). The offsets from these give me a
+`libc_base` reliably, which allows me to replace any function in
+the GOT with another from libc.
 
 This has essentially given me control over EIP (the moment I can
 "trigger" one of those functions _exactly_ when I want to). Now, all
