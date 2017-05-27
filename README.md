@@ -16,6 +16,121 @@ This work is licensed under a [Creative Commons Attribution-NonCommercial-ShareA
 
 ## The Notes Themselves
 
+### Genetic Fuzzing
+
+Written on May 27 2017
+
+> Influenced by [this](https://www.youtube.com/watch?v=JhsHGms_7JQ)
+> amazing live stream by Gynvael Coldwind, where he talks about the
+> basic theory behind genetic fuzzing, and starts to build a basic
+> genetic fuzzer.
+
+"Advanced" fuzzing (compared to a blind fuzzer, described in
+my ["Basics of Fuzzing"](#basics-of-fuzzing) note). It also
+modifies/mutates bytes etc, but it does it a little bit smarter than
+the blind "dumb" fuzzer.
+
+Why do we need a genetic fuzzer?
+
+Some programs might be "nasty" towards dumb fuzzers, since it is
+possible that a vulnerability might require a whole bunch of
+conditions to be satisfied to be reached. In a dumb fuzzer, we have
+very low probability of this happening since it doesn't have any idea
+if it is making any progress or not. As a specific example, if we have
+the code `if a: if b: if c: if d: crash!` (let's call it the CRASHER
+code), then in this case we need 4 conditions to be satisfied to crash
+the program. However, a dumb fuzzer might be unable to get past the
+`a` condition, just because there is very low chance that all 4
+mutations `a`, `b`, `c`, `d`, happen at same time. In fact, even if it
+progresses by doing just `a`, the next mutation might go back to `!a`
+just because it doesn't know anything about the program.
+
+Wait, when does this kind of "bad case" program show up?
+
+It is quite common in file format parsers, to take one example. To
+reach some specific code paths, one might need to go past multiple
+checks "this value must be this, and that value must be that, and some
+other value must be something of something else" and so
+on. Additionally, almost no real world software is "uncomplicated",
+and most software has many many many possible code paths, some of
+which can be accessed only after many things in the state get set up
+correctly. Thereby, many of these programs' code paths are basically
+inaccessible to dumb fuzzers. Additionally, sometimes, some paths
+might be completely inaccessible (rather than just crazily improbable)
+due to not enough mutations done whatsoever. If any of these paths
+have bugs, a dumb fuzzer would never be able to find them.
+
+So how do we do better than dumb fuzzers?
+
+Consider the Control Flow Graph (CFG) of the above mentioned CRASHER
+code. If by chance a dumb fuzzer suddenly got `a` correct, then too it
+would not recognize that it reached a new node, but it would continue
+ignoring this, discarding the sample. On the other hand, what AFL (and
+other genetic or "smart" fuzzers) do, is they recognize this as a new
+piece of information ("a newly reached path") and store this sample as
+a new initial point into the corpus. What this means is that now the
+fuzzer can start from the `a` block and move further. Of course,
+sometimes, it might go back to the `!a` from the `a` sample, but most
+of the time, it will not, and instead might be able to reach `b`
+block. This again is a new node reached, so adds a new sample into the
+corpus. This continues, allowing more and more possible paths to be
+checked, and finally reaches the `crash!`.
+
+Why does this work?
+
+By adding mutated samples into the corpus, that explore the graph more
+(i.e. reach parts not explored before), we can reach previously
+unreachable areas, and can thus fuzz such areas. Since we can fuzz
+such areas, we might be able to uncover bugs in those regions.
+
+Why is it called genetic fuzzing?
+
+This kind of "smart" fuzzing is kind of like genetic
+algorithms. Mutation and crossover of specimens causes new
+specimens. We keep specimens which are better suited to the conditions
+which are tested. In this case, the condition is "how many nodes in
+the graph did it reach?". The ones that traverse more can be
+kept. This is not exactly like genetic algos, but is a variation
+(since we keep all specimens that traverse unexplored territory, and
+we don't do crossover) but is sufficiently similar to get the same
+name. Basically, choice from pre-existing population, followed by
+mutation, followed by fitness testing (whether it saw new areas), and
+repeat.
+
+Wait, so we just keep track of unreached nodes?
+
+Nope, not really. AFL keeps track of edge traversals in the graph,
+rather than nodes. Additionally, it doesn't just say "edge travelled
+or not", it keeps track of how many times an edge was traversed. If an
+edge is traversed 0, 1, 2, 4, 8, 16, ... times, it is considered as a
+"new path" and leads to addition into the corpus. This is done because
+looking at edges rather than nodes is a better way to distinguish
+between application states, and using an exponentially increasing
+count of the edge traversals gives more info (an edge traversed once
+is quite different from traversed twice, but traversed 10 is not too
+different from 11 times).
+
+So, what and all do you need in a genetic fuzzer?
+
+We need 2 things, the first part is called the tracer (or tracing
+instrumentation). It basically tells you which instructions were
+executed in the application. AFL does this in a simple way by jumping
+in between the compilation stages. After the generation of the
+assembly, but before assembling the program, it looks for basic blocks
+(by looking for endings, by checking for jump/branch type of
+instructions), and adds code to each block that marks the block/edge
+as executed (probably into some shadow memory or something). If we
+don't have source code, we can use other techniques for tracing (such
+as pin, debugger, etc). Turns out, even ASAN can give coverage
+information (see docs for this).
+
+For the second part, we then use the coverage information given by the
+tracer to keep track of new paths as they appear, and add those
+generated samples into the corpus for random selection in the future.
+
+Rest of this note will be completed soon, once I'm done watching Gyn's
+[next stream](https://www.youtube.com/watch?v=HN_tI601jNU).
+
 ### Basics of Fuzzing
 
 Written on 20th April 2017
