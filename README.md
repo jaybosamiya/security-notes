@@ -18,12 +18,13 @@ This work is licensed under a [Creative Commons Attribution-NonCommercial-ShareA
 
 ### Genetic Fuzzing
 
-Written on May 27 2017
+Written on May 27 2017; extended on May 29 2017
 
 > Influenced by [this](https://www.youtube.com/watch?v=JhsHGms_7JQ)
 > amazing live stream by Gynvael Coldwind, where he talks about the
 > basic theory behind genetic fuzzing, and starts to build a basic
-> genetic fuzzer.
+> genetic fuzzer.  He then proceeds to complete the implementation
+> in [this](https://www.youtube.com/watch?v=HN_tI601jNU) live stream.
 
 "Advanced" fuzzing (compared to a blind fuzzer, described in
 my ["Basics of Fuzzing"](#basics-of-fuzzing) note). It also
@@ -128,8 +129,30 @@ For the second part, we then use the coverage information given by the
 tracer to keep track of new paths as they appear, and add those
 generated samples into the corpus for random selection in the future.
 
-Rest of this note will be completed soon, once I'm done watching Gyn's
-[next stream](https://www.youtube.com/watch?v=HN_tI601jNU).
+There are multiple mechanisms to make the tracer. They can be software
+based, or hardware based. For hardware based, there are, for example,
+some Intel CPU features exist where given a buffer in memory, it
+records information of all basic blocks traversed into that buffer. It
+is a kernel feature, so the kernel has to support it and provide it as
+an API (which Linux does). For software based, we can do it by adding
+in code, or using a debugger (using temporary breakpoints, or through
+single stepping), or use address sanitizer's tracing abilities, or use
+hooks, or emulators, or a whole bunch of other ways.
+
+Another way to differentiate the mechanisms is by either black-box
+tracing (where you can only use the unmodified binary), or softare
+white-box tracing (where you have access to the source code, and
+modify the code itself to add in tracing code).
+
+AFL uses software instrumentation during compilation as the method for
+tracing (or through QEMU emulation). Honggfuzz supports both software
+and hardware based tracing methods. Other smart fuzzers might be
+different. The one that Gyn builds uses the tracing/coverage provided
+by address sanitizer (ASAN).
+
+Some fuzzers use "speedhacks" (i.e. increase fuzzing speed) such as by
+making a forkserver or other such ideas. Might be worth looking into
+these at some point :)
 
 ### Basics of Fuzzing
 
