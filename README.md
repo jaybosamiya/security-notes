@@ -16,6 +16,87 @@ This work is licensed under a [Creative Commons Attribution-NonCommercial-ShareA
 
 ## The Notes Themselves
 
+### Return Oriented Programming
+
+Written on Jun 4 2017
+
+> Influenced by [this](https://www.youtube.com/watch?v=iwRSFlZoSCM)
+> awesome live stream by Gynvael Coldwind, where he discusses the
+> basics of ROP, and gives a few tips and tricks
+
+Return Oriented Programming (ROP) is one of the classic exploitation
+techniques, that is used to bypass the NX (non executable memory)
+protection. Microsoft has incorporated NX as DEP (data execution
+prevention). Even Linux etc, have it effective, which means that with
+this protection, you could no longer place shellcode onto heap/stack
+and have it execute just by jumping to it. So now, to be able to
+execute code, you jump into pre-existing code (main binary, or its
+libraries -- libc, ldd etc on Linux; kernel32, ntdll etc on
+Windows). ROP comes into existence by re-using fragments of this code
+that is already there, and figuring out a way to combine those
+fragments into doing what you want to do (which is of course, HACK THE
+PLANET!!!).
+
+Originally, ROP started with ret2libc, and then became more advanced
+over time by using many more small pieces of code. Some might say that
+ROP is now "dead", due to additional protections to mitigate it, but
+it still can be exploited in a lot of scenarios (and definitely
+necessary for many CTFs).
+
+The most important part of ROP, is the gadgets. Gadgets are "usable
+pieces of code for ROP". That usually means pieces of code that end
+with a `ret` (but other kinds of gadgets might also be useful; such as
+those ending with `pop eax; jmp eax` etc). We chain these gadgets
+together to form the exploit, which is known as the _ROP chain_.
+
+One of the most important assumptions of ROP is that you have control
+over the stack (i.e., the stack pointer points to a buffer that you
+control). If this is not true, then you will need to apply other
+tricks (such as stack pivoting) to gain this control before building a
+ROP chain.
+
+How do you extract gadgets? Use downloadable tools (such
+as [ropgadget](http://shell-storm.org/project/ROPgadget/)) or online
+tool (such as [ropshell](http://ropshell.com/)) or write your own
+tools (might be more useful for more difficult challenges sometimes,
+since you can tweak it to the specific challenge if need
+be). Basically, we just need the addresses that we can jump to for
+these gadgets. This is where there might be a problem with ASLR etc
+(in which case, you get a leak of the address, before moving on to
+actually doing ROP).
+
+So now, how do we use these gadgets to make a ropchain? We first look
+for "basic gadgets". These are gadgets that can do _simple_ tasks for
+us (such as `pop ecx; ret`, which can be used to load a value into ecx
+by placing the gadget, followed by the value to be loaded, followed by
+rest of chain, which is returned to after the value is loaded). The
+most useful basic gadgets, are usually "set a register", "store
+register value at address pointed to by register", etc.
+
+We can build up from these primitive functions to gain higher level
+functionality (similar to my post
+titled [exploitation abstraction](#exploitation-abstraction)). For
+example, using the set-register, and store-value-at-address gadgets,
+we can come up with a "poke" function, that lets us set any specific
+address with a specific value. Using this, we can build a
+"poke-string" function that lets us store any particular string at any
+particular location in memory. Now that we have poke-string, we are
+basically almost done, since we can create any structures that we want
+in memory, and can also call any functions we want with the parameters
+we want (since we can set-register, and can place values on stack).
+
+One of the most important reasons to build from these lower order
+primitives to larger functions that do more complex things, is to
+reduce the chances of making mistakes (which is common in ROP
+otherwise).
+
+There are more complex ideas, techniques, and tips for ROP, but that
+is possibly a topic for a separate note, for a different time :)
+
+PS: Gyn has a blogpost
+on [Return-Oriented Exploitation](http://gynvael.coldwind.pl/?id=149)
+that might be worth a read.
+
 ### Genetic Fuzzing
 
 Written on May 27 2017; extended on May 29 2017
