@@ -16,6 +16,154 @@ This work is licensed under a [Creative Commons Attribution-NonCommercial-ShareA
 
 ## The Notes Themselves
 
+### Analysis for RE and Pwning tasks in CTFs
+
+Written on Jul 2 2017
+
+> Influenced by a discussion with [@p4n74](https://github.com/p4n74/)
+> and [@h3rcul35](https://github.com/aazimcr) on
+> the [InfoSecIITR](https://github.com/InfoSecIITR/) #bin chat. We
+> were discussing on how sometimes beginners struggle to start with a
+> larger challenge binary, especially when it is stripped.
+
+To either solve the RE challenge, or to be able to pwn it, one must
+first analyze the given binary, in order to be able to effectively
+exploit it. Since the binary might possibly be stripped etc (found
+using `file`) one must know where to begin analysis, to get a foothold
+to build up from.
+
+There's a few styles of analysis, when looking for vulnerabilities in
+binaries (and from what I have gathered, different CTF teams have
+different preferences):
+
+1. Static Analysis
+
+ 1.1. Transpiling complete code to C
+
+  This kind of analysis is sort of rare, but is quite useful for
+  smaller binaries. The idea is to go in an reverse engineer the
+  entirity of the code. Each and every function is opened in IDA
+  (using the decompiler view), and renaming (shortcut: n) and retyping
+  (shortcut: y) are used to quickly make the decompiled code much more
+  readable. Then, all the code is copied/exported into a separate .c
+  file, which can be compiled to get an equivalent (but not same)
+  binary to the original. Then, source code level analysis can be
+  done, to find vulns etc. Once the point of vulnerability is found,
+  then the exploit is built on the original binary, by following along
+  in the nicely decompiled source in IDA, side by side with the
+  disassembly view (use Tab to quickly switch between the two; and use
+  Space to switch quickly between Graph and Text view for
+  disassembly).
+
+ 1.2. Minimal analysis of decompilation
+
+  This is done quite often, since most of the binary is relatively
+  useless (from the attacker's perspective). You only need to analyze
+  the functions that are suspicious or might lead you to the vuln. To
+  do this, there are some approaches to start off:
+
+  1.2.1. Start from main
+
+   Now usually, for a stripped binary, even main is not labelled (IDA
+   6.9 onwards does mark it for you though), but over time, you learn
+   to recognize how to reach the main from the entry point (where IDA
+   opens at by default). You jump to that and start analyzing from
+   there.
+
+  1.2.2. Find relevant strings
+
+   Sometimes, you know some specific strings that might be outputted
+   etc, that you know might be useful (for example "Congratulations,
+   your flag is %s" for an RE challenge). You can jump to Strings View
+   (shortcut: Shift+F12), find the string, and work backwards using
+   XRefs (shortcut: x). The XRefs let you find the path of functions
+   to that string, by using XRefs on all functions in that chain,
+   until you reach main (or some point that you know).
+
+  1.2.3. From some random function
+
+   Sometimes, not specific string might be useful, and you don't want
+   to start from main. So instead, you quickly flip through the whole
+   functions list, looking for functions that look suspicious (such as
+   having lots of constants, or lots of xors, etc) or call important
+   functions (XRefs of malloc, free, etc), and you start off from
+   there, and go both forwards (following functions it calls) and
+   backwards (XRefs of the function)
+
+ 1.3. Pure disassembly analysis
+
+  Sometimes, you cannot use the decompilation view (because of weird
+  architecture, or anti-decompilation techniques, or hand written
+  assembly, or decompilation looking too unnecessarily complex). In
+  that case, it is perfectly valid to look purely at the disassembly
+  view. It is extremely useful (for new architectures) to turn on Auto
+  Comments, which shows a comment explaining each
+  instruction. Additionally, the node colorization and group nodes
+  functionalities are immensely helpful. Even if you don't use any of
+  these, regularly marking comments in the disassembly helps a lot. If
+  I am personally doing this, I prefer writing down Python-like
+  comments, so that I can quickly then transpile in manually into
+  Python (especially useful for RE challenges, where you might have to
+  use Z3 etc).
+
+ 1.4. Using platforms like BAP, etc.
+
+  This kind of analysis is (semi-)automated, and is usually more
+  useful for much larger software, and is rarely directly used in
+  CTFs.
+
+2. Fuzzing
+
+ Fuzzing can be an effective technique to quickly get to the vuln,
+ without having to actually understand it initially. By using a
+ fuzzer, one can get a lot of low-hanging-fruit style of vulns, which
+ then need to be analyzed and triaged to get to the actual vuln. See
+ my notes
+ on
+ [basics of fuzzing](https://github.com/jaybosamiya/security-notes#basics-of-fuzzing) and
+ [genetic fuzzing](https://github.com/jaybosamiya/security-notes#genetic-fuzzing) for
+ more info.
+
+3. Dynamic Analysis
+
+ Dynamic Analysis can be used after finding a vuln using static
+ analysis, to help build exploits quickly. Alternatively, it can be
+ used to find the vuln itself. Usually, one starts up the executable
+ inside a debugger, and tries to go along code paths that trigger the
+ bug. By placing breakpoints at the right locations, and analyzing the
+ state of the registers/heap/stack/etc, one can get a good idea of
+ what is going on.  One can also use debuggers to quickly identify
+ interesting functions. This can be done, for example, by setting
+ temporary breakpoints on all functions initially; then proceeding to
+ do 2 walks - one through all uninteresting code paths; and one
+ through only a single interesting path. The first walk trips all the
+ uninteresting functions and disables those breakpoints, thereby
+ leaving the the interesting ones showing up as breakpoints during the
+ second walk.
+
+My personal style for analysis, is to start with static analysis,
+usually from main (or for non-console based applications, from
+strings), and work towards quickly finding a function that looks
+odd. I then spend time and branch out forwards and backwards from
+here, regularly writing down comments, and continuously renaming and
+retyping variables to improve the decompilation. Like others, I do use
+names like Apple,Banana,Carrot,etc for seemingly useful, but as of yet
+unknown functions/variables/etc, to make it easier to analyze (keeping
+track of func_123456 style of names is too difficult for me). I also
+regularly use the Structures view in IDA to define structures (and
+enums) to make the decompilation even nicer. Once I find the vuln, I
+usually move to writing a script with pwntools (and use that to call a
+`gdb.attach()`). This way, I can get a lot of control over what is
+going on. Inside gdb, I usually use plain gdb, though I have added a
+command `peda` that loads peda instantly if needed.
+
+My style is definitely evolving though, as I have gotten more
+comfortable with my tools, and also with custom tools I have written
+to speed things up. I would be happy to hear of other analysis styles,
+as well as possible changes to my style that might help me get
+faster. For any comments/criticisms/praise you have, as always, I can
+be reached on Twitter [@jay\_f0xtr0t](http://twitter.com/@jay_f0xtr0t).
+
 ### Return Oriented Programming
 
 Written on Jun 4 2017
