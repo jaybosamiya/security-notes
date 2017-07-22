@@ -42,7 +42,7 @@ different preferences):
 
   This kind of analysis is sort of rare, but is quite useful for
   smaller binaries. The idea is to go in an reverse engineer the
-  entirity of the code. Each and every function is opened in IDA
+  entirety of the code. Each and every function is opened in IDA
   (using the decompiler view), and renaming (shortcut: n) and retyping
   (shortcut: y) are used to quickly make the decompiled code much more
   readable. Then, all the code is copied/exported into a separate .c
@@ -138,7 +138,7 @@ different preferences):
  do 2 walks - one through all uninteresting code paths; and one
  through only a single interesting path. The first walk trips all the
  uninteresting functions and disables those breakpoints, thereby
- leaving the the interesting ones showing up as breakpoints during the
+ leaving the interesting ones showing up as breakpoints during the
  second walk.
 
 My personal style for analysis, is to start with static analysis,
@@ -369,7 +369,7 @@ single stepping), or use address sanitizer's tracing abilities, or use
 hooks, or emulators, or a whole bunch of other ways.
 
 Another way to differentiate the mechanisms is by either black-box
-tracing (where you can only use the unmodified binary), or softare
+tracing (where you can only use the unmodified binary), or software
 white-box tracing (where you have access to the source code, and
 modify the code itself to add in tracing code).
 
@@ -649,9 +649,9 @@ check and the use.
 
 Usually the window-of-opportunity might be very small. We can use
 multiple tricks in order to increase this window of opportunity by a
-factor of 3x or even upto ~100x. We do this by controlling how the
+factor of 3x or even up to ~100x. We do this by controlling how the
 value is being cached, or paged. If a value (let's say a `long int`)
-is not alligned to a cache line, then 2 cache lines might need to be
+is not aligned to a cache line, then 2 cache lines might need to be
 accessed and this causes a delay for the same instruction to
 execute. Alternatively, breaking alignment on a page, (i.e., placing
 it across a page boundary) can cause a much larger time to
