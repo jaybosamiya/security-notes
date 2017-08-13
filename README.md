@@ -16,6 +16,83 @@ This work is licensed under a [Creative Commons Attribution-NonCommercial-ShareA
 
 ## The Notes Themselves
 
+### Misc RE tips
+
+Written on Aug 12 2017
+
+> Influenced by Gynvael's CONFidence CTF 2017
+> Livestreams [here](https://www.youtube.com/watch?v=kZtHy9GqQ8o)
+> and [here](https://www.youtube.com/watch?v=W7s5CWaw6I4); and by his
+> Google CTF Quals 2017
+> Livestream [here](https://www.youtube.com/watch?v=KvyBn4Btv8E)
+
+Sometimes, a challenge might implement a complicated task by
+implementing a VM. It is not always necessary to completely reverse
+engineer the VM and work on solving the challenge. Sometimes, you can
+RE a little bit, and once you know what is going on, you can hook into
+the VM, and get access to stuff that you need. Additionally, timing
+based side-channel attacks become easier in VMs (mainly due to more
+number of _"real"_ instructions executed.
+
+Cryptographically interesting functions in binaries can be recognized
+and quickly RE'd simply by looking for the constants and searching for
+them online. For standard crypto functions, these constants are
+sufficient to quickly guess at a function. Simpler crypto functions
+can be recognized even more easily. If you see a lot of XORs and stuff
+like that happening, and no easily identifiable constants, it is
+probably hand-rolled crypto (and also possibly broken).
+
+Sometimes, when using IDA with HexRays, the disassembly view might be
+better than the decompilation view. This is especially true if you
+notice that there seems to be a lot of complication going on in the
+decompilation view, but you notice repetitive patterns in the
+disassembly view. (You can quickly switch b/w the two using the space
+bar). For example, if there is a (fixed size) big-integer library
+implemented, then the decompilation view is terrible, but the
+disassembly view is easy to understand stuff (and easily recognizable
+due to the repetitive "with-carry" instructions such as
+`adc`). Additionally, when analyzing like this, using the "Group
+Nodes" feature in IDA's graph view is extremely useful to quickly
+reduce the complexity of your graph, as you understand what each node
+does.
+
+For weird architectures, having a good emulator is extremely
+useful. Especially, an emulator that can give you a dump of the memory
+can be used to quickly figure out what is going on, and recognize
+interesting portions, once you have the memory out of the
+emulator. Additionally, using an emulator implemented in a comfortable
+language (such as Python), means that you could run things exactly how
+you like. For example, if there is some interesting part of the code
+you might wish to run multiple times (for example, to brute force or
+something), then using the emulator, you can quickly code up something
+that does only that part of the code, rather than having to run the
+complete program.
+
+Being lazy is good, when REing. Do NOT waste time reverse engineering
+everything, but spend enough time doing recon (even in an RE
+challenge!), so as to be able to reduce the time spent on actually
+doing the more difficult task of REing. What recon, in such a
+situation means, is to just take quick looks at different functions,
+without spending too much time on analyzing each function
+thoroughly. You just quickly gauge what the function might be about
+(for example "looks like a crypto thing", or "looks like a memory
+management thing", etc.)
+
+For unknown hardware or architecture, spend enough time looking it up
+on Google, you might get lucky with a bunch of useful tools or
+documents that might help you build tools quicker. Often times, you'll
+find toy emulator etc implementations that might be useful as a quick
+point to start off from. Alternatively, you might get some interesting
+info (such as how bitmaps are stored, or how strings are stored, or
+something) with which you can write a quick "fix" script, and then use
+normal tools to see if interesting stuff is there.
+
+Gimp (the image manipulation tool), has a very cool open/load
+functionality to see raw pixel data. You can use this to quickly look
+for assets or repetitive structures in raw binary data. Do spend time
+messing around with the settings to see if more info can be gleaned
+from it.
+
 ### Analysis for RE and Pwning tasks in CTFs
 
 Written on Jul 2 2017
